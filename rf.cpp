@@ -164,6 +164,7 @@ static uint8_t Receive(void)                                 // see if a packet 
       xSemaphoreGive(UART1_Mutex);
 #ifdef WITH_SDLOG
       xSemaphoreTake(Log_Mutex, portMAX_DELAY);
+      Format_Bytes(Log_Write, "LGNE ", 5);
       Format_String(Log_Write, Line, Len);
       xSemaphoreGive(Log_Mutex);
 #endif
@@ -408,6 +409,7 @@ void vTaskRF(void* pvParameters)
       xSemaphoreGive(UART1_Mutex);
 #ifdef WITH_SDLOG
       xSemaphoreTake(Log_Mutex, portMAX_DELAY);
+      Format_Bytes(Log_Write, "LGNE ", 5);
       Format_String(Log_Write, Line, Len);                                     // send the NMEA out to the log file
       xSemaphoreGive(Log_Mutex);
 #endif

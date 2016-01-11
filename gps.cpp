@@ -176,8 +176,23 @@ static void GPS_NMEA(void)                                                 // wh
     xSemaphoreGive(UART1_Mutex);
 #ifdef WITH_SDLOG
     xSemaphoreTake(Log_Mutex, portMAX_DELAY);
+    Format_Bytes(Log_Write, "LGNE ", 5);
     Format_Bytes(Log_Write, NMEA.Data, NMEA.Len);
     Format_Bytes(Log_Write, (const uint8_t *)CRNL, 2);
+    if( NMEA.isGPGGA() && GPS_Longitude && GPS_Latitude )
+	{
+        Format_Bytes(Log_Write, "B ", 1);					// The IGC Format B record
+        Format_Bytes(Log_Write, NMEA.Data+7, 6);				// the time
+        Format_Bytes(Log_Write, NMEA.Data+17, 4);				// the latitude GGMM
+        Format_Bytes(Log_Write, NMEA.Data+22, 3);				// the latitude SSS
+        Format_Bytes(Log_Write, NMEA.Data+28, 1);				// the latitude N/S
+        Format_Bytes(Log_Write, NMEA.Data+30, 5);				// the longitude GGGMM
+        Format_Bytes(Log_Write, NMEA.Data+36, 3);				// the longitude SSS
+        Format_Bytes(Log_Write, NMEA.Data+42, 1);				// the longitude E/W
+        Format_Bytes(Log_Write, "A0000", 5);					// Altitude  in metters
+	Format_UnsDec(Log_Write, (uint32_t) GPS_Altitude, 4, 0);
+        Format_Bytes(Log_Write, "\n ", 1);					// The IGC Format B record
+	}
     xSemaphoreGive(Log_Mutex);
 #endif
   }

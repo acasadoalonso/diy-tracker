@@ -152,6 +152,7 @@ static void ProcBaro()
         xSemaphoreGive(UART1_Mutex);
 #ifdef WITH_SDLOG
         xSemaphoreTake(Log_Mutex, portMAX_DELAY);
+        Format_Bytes(Log_Write, "LGNE ", 5);
         Format_String(Log_Write, Line, Len);                             // send NMEA sentence to the log file
         xSemaphoreGive(Log_Mutex);
 #endif

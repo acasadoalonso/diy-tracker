@@ -30,7 +30,8 @@ void SPI2_Configuration(void)
   SPI_InitStructure.SPI_CPOL     = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA     = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS      = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // 60MHz/4 = 15MHz SPI bitrate (30MHz could possibly work ?)
+  // SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // 60MHz/4 = 15MHz SPI bitrate (30MHz could possibly work ?)
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32; // 60MHz/4 = 15MHz SPI bitrate (30MHz could possibly work ?)
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 7;
   SPI_Init(SPI2, &SPI_InitStructure);

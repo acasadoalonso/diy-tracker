@@ -21,6 +21,8 @@
   #include "fifo.h"
   #include "diskio.h"
   #include "ff.h"
+#define True 1
+#define False 0
 #endif
 
 uint32_t get_fattime(void) { return GPS_FatTime; } // for FatFS to have the correct time
@@ -139,7 +141,8 @@ static void ProcessInput(void)
 
 #ifdef WITH_SDLOG
 static   uint16_t  LogDate     =              0;                  // [~days] date = FatTime>>16
-static       char  LogName[14] = "TR000000.LOG";                  // log file name
+static       char  LogName[14] = "TR000000.IGC";                  // log file name
+static bool IGC_Header  = False;				  // sw to know if the IGC header has been created
 static FRESULT     LogErr;                                        // most recent error/state of the logging system
 static FATFS       FatFs;                                         // FatFS object for the file system (FAT)
 static FIL         LogFile;                                       // FatFS object for the log file
@@ -163,12 +166,34 @@ static void Log_Open(void)
   Format_UnsDec(LogName+2,    Date, 6);                           // format the date into the log file name
   LogErr=f_open(&LogFile, LogName, FA_WRITE | FA_OPEN_ALWAYS);    // open the log file
   if(LogErr)
-  { // xSemaphoreTake(UART1_Mutex, portMAX_DELAY);                   // ask exclusivity on UART1
-    // Format_String(UART1_Write, "TaskCTRL: cannot open "); // report open error
-    // Format_String(UART1_Write, LogName);
-    // Format_String(UART1_Write, "\n");
-    // xSemaphoreGive(UART1_Mutex);                                  // give back UART1 to other tasks
+  {//  xSemaphoreTake(UART1_Mutex, portMAX_DELAY);                   // ask exclusivity on UART1
+   //  Format_String(UART1_Write, "TaskCTRL: cannot open "); // report open error
+   //  Format_String(UART1_Write, LogName);
+   //  Format_String(UART1_Write, "\n");
+   //  xSemaphoreGive(UART1_Mutex);                                  // give back UART1 to other tasks
     return ; }
+  if (Date !=0 && !IGC_Header)
+  {
+    xSemaphoreTake(Log_Mutex, portMAX_DELAY);			// Create the IGC log header
+    Format_String(Log_Write, "AGNE001Tracker \n");
+    Format_String(Log_Write, "HFDTE");
+    Format_String(Log_Write, LogName+2, 6);
+    Format_String(Log_Write, "\n");
+    Format_String(Log_Write, "HFGIDGliderid:");
+    Format_Hex(Log_Write, UniqueID[0]); Log_Write(' ');
+    Format_Hex(Log_Write, UniqueID[1]); Log_Write(' ');
+    Format_Hex(Log_Write, UniqueID[2]); Log_Write(' ');
+    Format_String(Log_Write, "\n");
+    Format_String(Log_Write, "HFRFW ");				// indicate the version
+    Format_String(Log_Write, __DATE__);
+    Format_String(Log_Write, " ");
+    Format_String(Log_Write, __TIME__);
+    Format_String(Log_Write, "\n");
+    Format_String(Log_Write, "HFGPS V.KEL \n");			// indicate the GPS device	
+    Format_String(Log_Write, "HFPRS BMP.180 \n");		// indicate the pressure device
+    IGC_Header=True;						// mark as created the IGC header
+    xSemaphoreGive(Log_Mutex); }
+
   LogErr=f_lseek(&LogFile, f_size(&LogFile));                     // move to the end of the file (for append)
   LogOpenTime=xTaskGetTickCount();                                // record the system time when log was open
   if(!LogErr)
@@ -247,6 +272,12 @@ void vTaskCTRL(void* pvParameters)
   vTaskDelay(5);
 
   xSemaphoreTake(UART1_Mutex, portMAX_DELAY);                   // ask exclusivity on UART1
+  Format_String(UART1_Write, "Version ID: ");
+  Format_String(UART1_Write, " "); 
+  Format_String(UART1_Write, __DATE__); 
+  Format_String(UART1_Write, " "); 
+  Format_String(UART1_Write, __TIME__); 
+  Format_String(UART1_Write, "\n"); 
   Format_String(UART1_Write, "TaskCTRL: MCU ID: ");
   Format_Hex(UART1_Write, UniqueID[0]); UART1_Write(' ');
   Format_Hex(UART1_Write, UniqueID[1]); UART1_Write(' ');
@@ -256,7 +287,8 @@ void vTaskCTRL(void* pvParameters)
   if(!LogErr)
   { Format_String(UART1_Write, "SD card: ");
     Format_UnsDec(UART1_Write, (uint32_t)FatFs.csize * (uint32_t)(FatFs.free_clust>>1), 4, 3 );
-    Format_String(UART1_Write, "MB free\n"); }
+    Format_String(UART1_Write, "MB free\n");
+  }
 #endif
   xSemaphoreGive(UART1_Mutex);                                  // give back UART1 to other tasks
   PrintParameters();
@@ -275,4 +307,6 @@ void vTaskCTRL(void* pvParameters)
 
   }
 }
+
+
 
