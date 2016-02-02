@@ -21,6 +21,35 @@
   #include "fifo.h"
   #include "diskio.h"
   #include "ff.h"
+struct BrokenDate
+{
+	int year;
+	int month;
+	int day;
+};
+
+char NumToIGCChar(int day);
+char * FormatIGCFilename ( char * buffer, struct BrokenDate , char manufacturer, char *logger_id, int flight_number);
+char NumToIGCChar(int num) {
+
+	if (num < 10)
+		return ('1' + (num - 1));
+
+	return ('A' + (num - 10));
+}
+char * FormatIGCFilename ( char * buffer, struct BrokenDate date, char manufacturer, char *logger_id, int flight_number)
+{
+
+
+	char cyear   = NumToIGCChar(date.year % 10);
+	char cmonth  = NumToIGCChar(date.month);
+	char cday    = NumToIGCChar(date.day);
+	char cflight = NumToIGCChar(flight_number);
+
+	sprintf( buffer, "%c%c%c%c%s%c.igc", cyear, cmonth, cday,
+			manufacturer, logger_id, cflight);
+	return (buffer); 
+}
 #define True 1
 #define False 0
 #endif
@@ -164,6 +193,16 @@ static void Log_Open(void)
   uint32_t Date = 0;
   if(Year>=0) Date = Day*10000 + Month*100 + Year;                // create DDMMYY number for easy printout
   Format_UnsDec(LogName+2,    Date, 6);                           // format the date into the log file name
+  struct BrokenDate date;
+  char manufacturer='X';
+  char logger_id[4]="TRK";
+  int flight_number =1;
+
+  date.year=Year+2000;
+  date.month=Month;
+  date.day=Day;
+  FormatIGCFilename ( LogName, date,  manufacturer,  logger_id,  flight_number);
+
   LogErr=f_open(&LogFile, LogName, FA_WRITE | FA_OPEN_ALWAYS);    // open the log file
   if(LogErr)
   {//  xSemaphoreTake(UART1_Mutex, portMAX_DELAY);                   // ask exclusivity on UART1
